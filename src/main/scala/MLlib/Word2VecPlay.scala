@@ -12,9 +12,11 @@ object Word2VecPlay {
     val spark = new SQLContext(sc)
     import spark.implicits._
     val documentDF = spark.createDataFrame(Seq("Hi I heard about Spark".split(" "), "I wish Java could use case classes".split(" "), "Logistic regression models are neat".split(" ")).map(Tuple1.apply)).toDF("text")
-    val word2Vec = new Word2Vec().setInputCol("text").setOutputCol("result").setVectorSize(3).setMinCount(0)
-    val model = word2Vec.fit(documentDF)
-    val result = model.transform(documentDF)
-    result.select("result").take(3).foreach(println)
+    documentDF.show()
+     val word2Vec = new Word2Vec().setInputCol("text").setOutputCol("result").setVectorSize(3).setMinCount(0)
+     val model = word2Vec.fit(documentDF)
+     val result = model.transform(documentDF)
+     result.select("result").take(1).foreach(println)
+     result.show()
   }
 }
