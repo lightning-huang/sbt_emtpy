@@ -1,4 +1,4 @@
-name := "scratch1"
+name := "train_model"
 
 version := "0.1"
 

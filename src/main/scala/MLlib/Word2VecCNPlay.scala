@@ -10,10 +10,11 @@ import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
+import parallex.ParellexIniReader
 
 object Word2VecCNPlay {
 
-  def segment(sc: SparkContext, stopWordsPath: String,corpus: String, segmentResFolder: String): Unit = {
+  def segment(sc: SparkContext, stopWordsPath: String, corpus: String, segmentResFolder: String): Unit = {
     //stop words
     val bcStopWords = sc.broadcast(sc.textFile(stopWordsPath).collect().toSet)
 
@@ -74,17 +75,25 @@ object Word2VecCNPlay {
   }
 
   def main(args: Array[String]): Unit = {
-    // System.setProperty("hadoop.home.dir","d:\\winutil")
-    val corpus = args(0)
-    val segmentResDir = args(1)
-    val modelDir = args(2)
-    val conf = new SparkConf().setAppName("Word2VecCN").setMaster("local[4]")
-    val sc = new SparkContext(conf)
-    segment(sc)
-    // word2VecRun(sc)
-    //val spark = new SQLContext(sc)
-    //import spark.implicits._
+    ParellexIniReader.init();
+    val configuration = ParellexIniReader.DataPathConfiguration;
+    val isLocalRun = configuration.getBoolean("localRun")
+    if (isLocalRun) {
+      System.setProperty("hadoop.home.dir", "d:\\winutil")
+    }
 
+    val stopWords = configuration.getProperty("stopWords")
+    val corpus = configuration.getProperty("corpusPath")
+    val segmentResDir = configuration.getProperty("segmentResDir")
+    val modelDir = configuration.getProperty("modelDir")
+    var conf = new SparkConf().setAppName("Word2VecCN")
+
+    if(isLocalRun){
+      conf = conf.setMaster("local[4]");
+    }
+
+    val sc = new SparkContext(conf)
+    segment(sc, stopWords, corpus, segmentResDir)
 
   }
 }
