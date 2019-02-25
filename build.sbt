@@ -12,5 +12,5 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-streaming" % sparkVersion,
   "org.apache.spark" %% "spark-streaming-twitter" % sparkVersion,
   "com.hankcs" % "hanlp" % "portable-1.2.8",
-  "org.scalanlp" % "nak_2.11" % "1.3"
+  "org.scalanlp" % "nak_2.10" % "1.3"
 )
