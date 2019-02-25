@@ -1,16 +1,13 @@
 package MLlib
 
-import java.io.File
-
-import basic.AsciiUtil
+import basic.{AsciiUtil, OfCourseUtil}
 import com.hankcs.hanlp.tokenizer.NLPTokenizer
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
-import parallex.ParellexIniReader
+import parallax.ParallaxIniReader
 
 object Word2VecCNPlay {
 
@@ -37,17 +34,18 @@ object Word2VecCNPlay {
     })
 
     //save segment result
-    segmentRes.saveAsTextFile("d:\\data\\cut_txt")
+    segmentRes.saveAsTextFile(segmentResFolder)
     bcStopWords.unpersist()
   }
 
   case class Text(text: Seq[String])
 
-  def word2VecRun(sc: SparkContext) = {
+  def word2VecRun(sc: SparkContext, segmentResFolder: String, modelDir: String, outputDir: String) = {
     val spark = new SQLContext(sc)
     import spark.implicits._
 
-    val input = spark.read.text("d:\\data\\cut_txt\\part-00000", "d:\\data\\cut_txt\\part-00001").filter($"value".isNotNull && length(trim($"value")) > 0).map(row => Text(row.getAs[String]("value").split(" ").toSeq)).toDF()
+    val input = spark.read.text(segmentResFolder + "/part-*").map(row => row.getAs[String](0))
+      .filter(line => !OfCourseUtil.isNullOrWhiteSpace(line)).map(line => Text(line.split(" ").toSeq)).toDF()
 
     //model train
     val word2vec = new Word2Vec()
@@ -59,24 +57,25 @@ object Word2VecCNPlay {
     println("model word size: " + model.getVectors.count())
 
     //Save and load model
-    model.save("d:\\data\\my_model")
+    model.save(modelDir)
     val local = model.getVectors.map {
       row => Seq(row.getString(0), row.getAs[DenseVector](1).toArray.mkString(" ")).mkString(":")
     }.collect()
-    sc.parallelize(local).saveAsTextFile("d:\\data\\word2vec")
+    sc.parallelize(local).saveAsTextFile(outputDir)
 
     //predict similar words
-    //val like = model.findSynonyms("中国", 40)
-    //    for ((item, cos) <- like) {
-    //      println(s"$item  $cos")
-    //    }
+    val like = model.findSynonyms("中国", 40)
+    like.map {
+      row => s"${row.getAs[String](0)} ${row.getAs[Double](1)}"
+    }.foreach(println)
+
 
     //val sameModel = Word2VecModel.load(sc, "word2vec模型路径")
   }
 
   def main(args: Array[String]): Unit = {
-    ParellexIniReader.init();
-    val configuration = ParellexIniReader.DataPathConfiguration;
+    ParallaxIniReader.init();
+    val configuration = ParallaxIniReader.DataPathConfiguration;
     val isLocalRun = configuration.getBoolean("localRun")
     if (isLocalRun) {
       System.setProperty("hadoop.home.dir", "d:\\winutil")
@@ -86,14 +85,17 @@ object Word2VecCNPlay {
     val corpus = configuration.getProperty("corpusPath")
     val segmentResDir = configuration.getProperty("segmentResDir")
     val modelDir = configuration.getProperty("modelDir")
+    val word2vecDir = configuration.getProperty("word2vecDir")
+
     var conf = new SparkConf().setAppName("Word2VecCN")
 
-    if(isLocalRun){
+    if (isLocalRun) {
       conf = conf.setMaster("local[4]");
     }
 
     val sc = new SparkContext(conf)
     segment(sc, stopWords, corpus, segmentResDir)
+    word2VecRun(sc, segmentResDir, modelDir, word2vecDir);
 
   }
 }
