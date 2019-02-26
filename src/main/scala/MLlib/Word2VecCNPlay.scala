@@ -4,7 +4,7 @@ import basic.{AsciiUtil, OfCourseUtil}
 import com.hankcs.hanlp.tokenizer.NLPTokenizer
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.{Row, SQLContext}
-import org.apache.spark.ml.feature.Word2Vec
+import org.apache.spark.ml.feature.{Word2Vec, Word2VecModel}
 import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.sql.functions._
 import parallax.ParallaxIniReader
@@ -51,7 +51,7 @@ object Word2VecCNPlay {
     val word2vec = new Word2Vec()
       .setInputCol("text")
       .setVectorSize(50)
-      .setNumPartitions(64)
+      .setNumPartitions(128)
 
     val model = word2vec.fit(input)
     println("model word size: " + model.getVectors.count())
@@ -68,7 +68,6 @@ object Word2VecCNPlay {
     like.map {
       row => s"${row.getAs[String](0)} ${row.getAs[Double](1)}"
     }.foreach(println)
-
 
     //val sameModel = Word2VecModel.load(sc, "word2vec模型路径")
   }
