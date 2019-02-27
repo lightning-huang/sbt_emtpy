@@ -1,11 +1,13 @@
 package MLlib
 
+import java.util.Properties
+
 import basic.{AsciiUtil, OfCourseUtil}
 import com.hankcs.hanlp.tokenizer.NLPTokenizer
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.ml.feature.{Word2Vec, Word2VecModel}
-import org.apache.spark.mllib.linalg.DenseVector
+import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.functions._
 import parallax.ParallaxIniReader
 
@@ -40,8 +42,7 @@ object Word2VecCNPlay {
 
   case class Text(text: Seq[String])
 
-  def word2VecRun(sc: SparkContext, segmentResFolder: String, modelDir: String, outputDir: String) = {
-    val spark = new SQLContext(sc)
+  def word2VecRun(spark: SQLContext, segmentResFolder: String, modelDir: String, word2VecDir: String) = {
     import spark.implicits._
 
     val input = spark.read.text(segmentResFolder + "/part-*").map(row => row.getAs[String](0))
@@ -58,22 +59,25 @@ object Word2VecCNPlay {
 
     //Save and load model
     model.save(modelDir)
-    val local = model.getVectors.map {
+    model.getVectors.map {
       row => Seq(row.getString(0), row.getAs[DenseVector](1).toArray.mkString(" ")).mkString(":")
-    }.collect()
-    sc.parallelize(local).saveAsTextFile(outputDir)
+    }.write.text(word2VecDir)
 
     //predict similar words
     val like = model.findSynonyms("中国", 40)
     like.map {
       row => s"${row.getAs[String](0)} ${row.getAs[Double](1)}"
-    }.foreach(println)
+    }.show()
 
-    //val sameModel = Word2VecModel.load(sc, "word2vec模型路径")
+    val sameModel = Word2VecModel.load(modelDir)
   }
 
   def main(args: Array[String]): Unit = {
     ParallaxIniReader.init();
+    val props = new Properties()
+    props.load(this.getClass.getClassLoader.getResourceAsStream("hanlp.properties"))
+    println("the read root=" + props.getProperty("root"))
+    Class.forName("com.hankcs.hanlp.HanLP")
     val configuration = ParallaxIniReader.DataPathConfiguration;
     val isLocalRun = configuration.getBoolean("localRun")
     if (isLocalRun) {
@@ -89,12 +93,14 @@ object Word2VecCNPlay {
     var conf = new SparkConf().setAppName("Word2VecCN")
 
     if (isLocalRun) {
-      conf = conf.setMaster("local[4]");
+      conf = conf.setMaster("local[4]")
     }
 
-    val sc = new SparkContext(conf)
+    val spark = SparkSession.builder.config(conf).getOrCreate();
+    val sc = spark.sparkContext;
+    val sqlContext = spark.sqlContext;
     segment(sc, stopWords, corpus, segmentResDir)
-    word2VecRun(sc, segmentResDir, modelDir, word2vecDir);
+    word2VecRun(sqlContext, segmentResDir, modelDir, word2vecDir);
 
   }
 }
