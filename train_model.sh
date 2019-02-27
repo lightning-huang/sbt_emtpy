@@ -8,4 +8,5 @@ MAIN_CLASS=MLlib.Word2VecCNPlay
 spark2-submit --archives $HANLP_DATA_ARCHIVE --jars $DEPENDENT_JARS --class $MAIN_CLASS --name BJ_AI_WORD2VEC --files $WORKING_DIR_FILES --queue $AI_QUEUE_NAME \
 --conf "spark.driver.extraJavaOptions=-XX:+PrintGCDetails -XX:+PrintGCTimeStamps" \
 --conf "spark.kryoserializer.buffer.max=1024m" \
+--conf "spark.rpc.message.maxSize=256" \
 --driver-memory 5G --executor-memory 3G train_model.jar
