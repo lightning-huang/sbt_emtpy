@@ -5,7 +5,7 @@ import java.util.Properties
 import basic.{AsciiUtil, OfCourseUtil}
 import com.hankcs.hanlp.tokenizer.NLPTokenizer
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.sql.{Row, SQLContext, SparkSession}
 import org.apache.spark.ml.feature.{Word2Vec, Word2VecModel}
 import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.functions._
@@ -45,7 +45,7 @@ object Word2VecCNPlay {
   def word2VecRun(spark: SQLContext, segmentResFolder: String, modelDir: String, word2VecDir: String) = {
     import spark.implicits._
 
-    val input = spark.read.text(segmentResFolder + "/part-*").map(row => row.getAs[String](0))
+    val input = spark.read.text(segmentResFolder + "/part-*").map({case Row(value:String) => value})
       .filter(line => !OfCourseUtil.isNullOrWhiteSpace(line)).map(line => Text(line.split(" ").toSeq)).toDF()
 
     //model train
