@@ -70,6 +70,7 @@ object Word2VecCNPlay {
     }.show()
 
     val sameModel = Word2VecModel.load(modelDir)
+
   }
 
   def main(args: Array[String]): Unit = {

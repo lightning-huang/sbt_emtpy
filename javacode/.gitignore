@@ -4,4 +4,4 @@ target/
 .idea/
 classes/
 data-for-1.7.2.zip/
-data-for-1.7.2.zip
+out/

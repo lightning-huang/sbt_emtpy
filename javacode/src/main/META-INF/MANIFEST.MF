@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Class-Path: guava-22.0.jar animal-sniffer-annotations-1.14.jar jsr305-
+ 1.3.9.jar j2objc-annotations-1.1.jar error_prone_annotations-2.0.18.j
+ ar
+Main-Class: com.vivo.arcane.earth.wordrepo.TryBloomFilter
+
